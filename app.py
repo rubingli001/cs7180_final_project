@@ -1,7 +1,8 @@
 import streamlit as st
 from datetime import datetime
 import PyPDF2
-import io
+from backend.model import build_index_from_pdf
+import tempfile
 
 # Configure page
 st.set_page_config(
@@ -82,18 +83,6 @@ if 'analysis_results' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-def extract_text_from_pdf(pdf_file):
-    """Extract text from PDF file"""
-    try:
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text() + "\n"
-        return text
-    except Exception as e:
-        st.error(f"Error reading PDF: {str(e)}")
-        return None
-
 
 # Sidebar
 with st.sidebar:
@@ -112,20 +101,16 @@ with st.sidebar:
         st.success(f"✅ **{uploaded_file.name}**")
         st.info(f"📄 {uploaded_file.size:,} bytes • Processing...")
         
-        # Process file
-        if uploaded_file.type == "application/pdf":
-            content = extract_text_from_pdf(uploaded_file)
-        else:
-            content = uploaded_file.read().decode('utf-8')
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+            temp_file.write(uploaded_file.getvalue())
+            temp_file_path = temp_file.name
         
-        if content:
-            st.session_state.file_content = content
-            with st.spinner("🔄 Analyzing document..."):
-                # Simulate analysis (replace with actual analysis logic)
-                st.success("✅ Analysis Complete!")
+        with st.spinner("🔄 Analyzing document..."):
+                st.session_state.index = build_index_from_pdf(temp_file_path)
+                st.success("✅ Document processed for Q&A!")
     
 
-    
 # Main content
 
 # Welcome screen

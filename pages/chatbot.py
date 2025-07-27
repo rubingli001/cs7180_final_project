@@ -1,4 +1,5 @@
 import streamlit as st
+from backend.model import build_index_from_pdf, query_index
 
 # Page config
 st.set_page_config(
@@ -15,6 +16,11 @@ st.title("💬 Financial Document Q&A")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "index" not in st.session_state:
+    st.warning("⚠️ Please note that no document has been uploaded yet. ")
+    st.session_state.index = None
+
+
 # Display chat messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -30,7 +36,9 @@ if prompt := st.chat_input("Ask a question about your document..."):
     # Generate assistant response
     with st.chat_message("assistant"):
         # Simple mock response (replace with your backend call)
-        response = f"You asked: '{prompt}'. This is a sample response about your financial document."
+        if st.session_state.index:
+            with st.spinner("💡 Thinking..."):
+                response = query_index(st.session_state.index, prompt)
         st.markdown(response)
     
     # Add assistant response to chat history

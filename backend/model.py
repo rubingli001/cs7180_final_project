@@ -1,9 +1,13 @@
 import pymupdf
 import pdfplumber
+import os
 from llama_index.core import Document, VectorStoreIndex, SimpleDirectoryReader
-from llama_index.llms.huggingface import HuggingFaceLLM
+from dotenv import load_dotenv
 
-# ----------------- PDF Extraction -----------------
+load_dotenv() 
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
+# ----------------- PDF extraction ----------------
 def likely_contains_table(text):
     """Heuristic to determine if a page likely contains a table based on text structure."""
     # Keyword-based detection
