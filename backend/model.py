@@ -1,7 +1,9 @@
 import pymupdf
 import pdfplumber
+from llama_index.core import Document, VectorStoreIndex, SimpleDirectoryReader
+from llama_index.llms.huggingface import HuggingFaceLLM
 
-
+# ----------------- PDF Extraction -----------------
 def likely_contains_table(text):
     """Heuristic to determine if a page likely contains a table based on text structure."""
     # Keyword-based detection
@@ -19,6 +21,24 @@ def likely_contains_table(text):
         if any(sym in line for sym in ['$','%']) and any(char.isdigit() for char in line)
     )
     return count >=2
+
+
+# The helper function to tidy up the row and remove the None values 
+def clean_table_row(row):
+    cleaned_row = []
+    for cell in row:
+        # Skip None values or cells that are just a dollar sign
+        if cell is None:
+            continue
+
+        cell_str = str(cell).strip()
+        if cell_str == '$':
+            continue
+
+        if cell_str:
+            cleaned_row.append(cell_str)
+
+    return cleaned_row
 
 
 def extract_text_from_pdf(pdf_file):
@@ -42,9 +62,10 @@ def extract_text_from_pdf(pdf_file):
 
                     tables = plumber_page.extract_tables()
                     for table in tables:
+                        cleaned_table = [clean_table_row(row) for row in table if clean_table_row(row)]
                         output.append({
                             "type": "table",
-                            "content": table
+                            "content": cleaned_table
                         })
                 # Use PyMuPDF for faster text extraction if no table is detected
                 else:
@@ -56,4 +77,23 @@ def extract_text_from_pdf(pdf_file):
     except Exception as e:
         return f"Error reading PDF: {str(e)}"
 
-    
+# ----------------- LlamaIndex Pipeline -----------------
+def build_index_from_pdf(pdf_file):
+    extracted_data = extract_text_from_pdf(pdf_file)
+    documents = []
+
+    for item in extracted_data:
+        if item['type'] == 'text':
+            documents.append(Document(text=item['content']))
+        elif item['type'] == 'table':
+            # Convert table rows to a string representation
+            table_content = "\n".join(["\t".join(row) for row in item['content']])
+            documents.append(Document(text=table_content))
+
+    index = VectorStoreIndex.from_documents(documents)
+    return index
+
+def query_index(index: VectorStoreIndex, query: str):
+    engine = index.as_query_engine()
+    response = engine.query(query)
+    return str(response)
