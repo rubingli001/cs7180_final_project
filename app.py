@@ -1,7 +1,8 @@
 import streamlit as st
 from datetime import datetime
-import PyPDF2
 from backend.model import build_index_from_pdf
+from backend.model_docling import build_index_from_pdf_docling
+from backend.utils import extract_key_metrics
 import tempfile
 
 # Configure page
@@ -82,6 +83,8 @@ if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
+if 'key_metrics' not in st.session_state:
+    st.session_state.key_metrics = None
 
 
 # Sidebar
@@ -107,7 +110,11 @@ with st.sidebar:
             temp_file_path = temp_file.name
         
         with st.spinner("🔄 Analyzing document..."):
-                st.session_state.index = build_index_from_pdf(temp_file_path)
+                # Build Index from the document
+                st.session_state.index = build_index_from_pdf_docling(temp_file_path)
+
+                # Extract key metrics using RAG pipeline
+                st.session_state.key_metrics = extract_key_metrics(st.session_state.index)
                 st.success("✅ Document processed for Q&A!")
     
 
@@ -118,7 +125,7 @@ st.markdown('<h1 class="main-title">📊 Financial Statement Analyzer</h1>', uns
 st.markdown('<p class="subtitle">Analyze 10-K filings, financial statements and earnings releases with AI-powered insights</p>', unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
-tab1, tab2 = st.tabs(["📋 Overview & Analysis", "💬 Q&A Chat"])
+tab1, tab2 = st.tabs(["📋 Company Financial Overview", "💬 Q&A Chat"])
 
 with col1:
     st.markdown("""
@@ -159,5 +166,52 @@ with col3:
     </div>
     """, unsafe_allow_html=True)
 
-st.info("👈 **Upload a financial document using the sidebar to get started!**")
+if not st.session_state.uploaded_file:
+    st.info("👈 **Upload a financial document using the sidebar to get started!**")
 
+# Show the key metrics if available
+if st.session_state.key_metrics:
+    metrics = st.session_state.key_metrics
+    st.markdown("#### 🏢 Company Information")
+    st.markdown(f"""
+    <div class="analysis-card">
+        <div class="card-content">
+            <strong>Company Name:</strong> {metrics.get('company_name', 'N/A')}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("#### 📅 Fiscal Period")
+    st.markdown(f"""
+    <div class="analysis-card">
+        <div class="card-content">
+            <strong>Fiscal Year:</strong> {metrics.get('fiscal_year', 'N/A')}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("#### 💰 Financial Position")
+    st.markdown(f"""
+    <div class="analysis-card">
+        <div class="card-content">
+            <strong>Brief Financial Overview:</strong> {metrics.get('assets', 'N/A')}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("#### 📊 Profitability Status")
+    profitability = metrics.get('profitability', 'N/A')
+    if 'profit' in profitability.lower() or 'positive' in profitability.lower():
+        status_icon = "✅"
+    elif 'loss' in profitability.lower() or 'deficit' in profitability.lower():
+        status_icon = "❌"
+    else:
+        status_icon = "⚠️"
+    
+    st.markdown(f"""
+    <div class="analysis-card">   
+        <strong>Status:</strong>
+        <span style = "color: #475569">{status_icon}{profitability}</span>
+    </div>
+    """, unsafe_allow_html=True)
+    

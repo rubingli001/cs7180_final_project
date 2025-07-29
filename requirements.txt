@@ -1,7 +1,10 @@
 streamlit
 PyPDF2
 pymupdf
-pdfplumber
+PdfPlumber
+docling
 llama-index
 llama-index-core
+llama-index-llms-openrouter
+llama-index-readers-docling
 python-dotenv
