@@ -1,6 +1,6 @@
 import streamlit as st
-from backend.model import build_index_from_pdf, query_index
-from backend.model_docling import create_role_prompts, query_index_with_roles
+# from backend.model import build_index_from_pdf, query_index
+from backend.model_docling import create_role_prompts, query_index_with_roles, query_index
 
 
 # Page config

@@ -5,6 +5,7 @@ from llama_index.llms.openrouter import OpenRouter
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from dotenv import load_dotenv
 import os
+import streamlit as st
 
 # Load environment variables
 load_dotenv() 
@@ -15,7 +16,7 @@ os.environ["OPENROUTER_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
 # Initialize OpenRouter LLM
 llm = OpenRouter(
     model="anthropic/claude-sonnet-4", 
-    pi_key=os.getenv("OPENROUTER_API_KEY"))
+    api_key=os.getenv("OPENROUTER_API_KEY"))
 
 # ----------------- PDF extraction using Docling ----------------
 def build_index_from_pdf_docling(pdf_file):
@@ -29,7 +30,7 @@ def build_index_from_pdf_docling(pdf_file):
 
     # Node parsing (semantic chunking)
     print(f"📄 Extracted {len(documents)} documents from {pdf_file}")
-    node_parser = MarkdownNodeParser()
+    node_parser = MarkdownNodeParser(chunk_size=256, chunk_overlap=20)  # Adjust chunk size and overlap as needed
     nodes = node_parser.get_nodes_from_documents(documents)
     for i, node in enumerate(nodes):
         print(f"\n--- Node {i+1} ---")
@@ -41,6 +42,16 @@ def build_index_from_pdf_docling(pdf_file):
     index = VectorStoreIndex.from_documents(documents, transformations=[node_parser])
 
     return index
+
+
+def query_index(index: VectorStoreIndex, query: str, llm=llm):
+    engine = index.as_query_engine(
+        llm=llm,
+        similarity_top_k=10,
+        max_tokens=4096,
+        response_mode="compact")
+    response = engine.query(query)
+    return str(response)
 
 # ----------------- Querying with role-based context ----------------
 # Create role-specific prompts based on user role

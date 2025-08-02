@@ -2,8 +2,8 @@ import streamlit as st
 import json
 import re
 from datetime import datetime
-from backend.model import query_index
-from backend.model_docling import build_index_from_pdf_docling
+# from backend.model import query_index
+from backend.model_docling import build_index_from_pdf_docling, query_index
 from llama_index.core import Document, VectorStoreIndex
 
 
