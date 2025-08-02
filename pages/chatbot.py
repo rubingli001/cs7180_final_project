@@ -82,7 +82,7 @@ if user_input := st.chat_input("Ask a question about your document..."):
 
         response = response.replace("$", "\$")  # Escape dollar signs so that Streamlit won't interpret them as LaTeX
         st.markdown(response)
-        print(f"Response: {response}")
+    
 
     
     # Add assistant response to chat history

@@ -1,11 +1,18 @@
 import pymupdf
 import pdfplumber
 import os
-from llama_index.core import Document, VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core import Document, VectorStoreIndex
+from llama_index.llms.openrouter import OpenRouter
 from dotenv import load_dotenv
 
 load_dotenv() 
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+os.environ["OPENROUTER_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
+
+# Initialize OpenRouter LLM
+llm = OpenRouter(
+    model="anthropic/claude-sonnet-4", 
+    api_key=os.getenv("OPENROUTER_API_KEY"))
 
 # ----------------- PDF extraction ----------------
 def likely_contains_table(text):
@@ -97,7 +104,11 @@ def build_index_from_pdf(pdf_file):
     index = VectorStoreIndex.from_documents(documents)
     return index
 
-def query_index(index: VectorStoreIndex, query: str):
-    engine = index.as_query_engine()
+def query_index(index: VectorStoreIndex, query: str, llm=llm):
+    engine = index.as_query_engine(
+        llm=llm,
+        similarity_top_k=10,
+        max_tokens=4096,
+        response_mode="compact")
     response = engine.query(query)
     return str(response)
