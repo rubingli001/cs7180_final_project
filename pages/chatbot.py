@@ -1,7 +1,17 @@
 import streamlit as st
-# from backend.model import build_index_from_pdf, query_index
+from backend.model import build_index_from_pdf
 from backend.model_docling import create_role_prompts, query_index_with_roles, query_index
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+from streamlit_mic_recorder import mic_recorder
 
+# Load environment variables
+load_dotenv()
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
+# Initialize OpenAI API for audio input
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Page config
 st.set_page_config(
@@ -40,6 +50,8 @@ ROLE_OPTIONS  = {
 # Title
 st.title("💬 Financial Document Q&A")
 
+# Voice mode toggle
+voice_mode = st.toggle("🎤 Speak My Question")
 
 # Initialize the session state for chat messages, document index embedded and user role
 if "messages" not in st.session_state:
@@ -55,14 +67,44 @@ if "index" not in st.session_state:
 if "role" not in st.session_state:
     st.session_state.role = "🎓 Beginner"
 
+# --- Voice Input Section ---
+voice_input = None
+if voice_mode:
+    st.markdown("Click the button below to start recording your question.")
+    audio = mic_recorder(
+            start_prompt="🎙 Start Recording", 
+            stop_prompt="⏹ Stop Recording",
+            just_once=True,
+            use_container_width=True
+        )
+    if audio:
+        st.audio(audio['bytes'])
+        with open("temp_voice.wav", "wb") as f:
+            f.write(audio['bytes'])
+
+        # Transcribe with Whisper
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=open("temp_voice.wav", "rb")
+        )
+        voice_input = transcript.text
+        st.success(f"🗣 You said: {voice_input}")
+
 
 # Display chat messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+# --- Text Input Section ---
+
+text_input = st.chat_input("Ask a question about your document...")
+
+# Combine input sources
+user_input = voice_input if voice_input else text_input
+
 # Chat input
-if user_input := st.chat_input("Ask a question about your document..."):
+if user_input:
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
@@ -80,10 +122,9 @@ if user_input := st.chat_input("Ask a question about your document..."):
                     st.session_state.role
                 )
 
-        response = response.replace("$", "\$")  # Escape dollar signs so that Streamlit won't interpret them as LaTeX
+        response = response.replace("$", r"\$")  # Escape dollar signs so that Streamlit won't interpret them as LaTeX
         st.markdown(response)
     
-
     
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
