@@ -2,12 +2,20 @@ import streamlit as st
 import json
 import re
 from datetime import datetime
-# from backend.model import query_index
-from backend.model_docling import build_index_from_pdf_docling, query_index
+from backend.model_docling import query_index
 from llama_index.core import Document, VectorStoreIndex
-
+from llama_index.llms.openrouter import OpenRouter
+from dotenv import load_dotenv
+import os
+#----------Define the LLM specific for the front page----------
+load_dotenv()
+os.environ["OPENROUTER_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
+llm = OpenRouter(
+    model="anthropic/claude-sonnet-4", 
+    api_key=os.getenv("OPENROUTER_API_KEY"))
 
 # ----------------- Extract Key Metrics ----------------
+
 def extract_key_metrics(index: VectorStoreIndex):
     # Find the company name first
     company_name = find_company_name_from_index(index)
@@ -35,7 +43,6 @@ SEARCH THOROUGHLY across ALL document sections for:
 - Profit margin percentages (net, gross, or operating margins)
 - Earnings per share (EPS) for current and prior year
 - Total assets for current year (Look specifically in the section titled "Balance Sheet", in millions)
-- Major risk factors (look for "Risk Factors" section, list them as comma-separated values)
 
 Return ONLY valid JSON matching exactly this structure:
 {json.dumps(metrics_schema, indent=2)}
@@ -45,8 +52,7 @@ Rules:
 - If "company_name" in the JSON already has a value, DO NOT modify it.
 - Use null if data is not available.
         """
-        print(f"🔍 Extracting key metrics with prompt:\n{prompt}")
-        response = query_index(index, prompt)
+        response = query_index(index, prompt,llm=llm)
         # Extract JSON from the response
         metrics_json = extract_json_from_response(response)
         print(f"📊 Extracted metrics: {metrics_json}")
@@ -65,12 +71,13 @@ def extract_risk_factors(index: VectorStoreIndex):
     # Use the RAG system to extract key metrics
     prompt = """
     You are a financial analysis assistant.
-    Task: Identify and summarize the MAJOR risk factors specific to THIS company as disclosed in the document.
+    Task: Identify and summarize the most significant business highlights, changes or achievements. 
     Rules: 
     - Include quantitative data if available in the document.
     - Include details specific to the company, not generic risks.
     """
-    response = query_index(index, prompt)
+    response = query_index(index, prompt, llm=llm)
+    print(f"⚠️ Extracted risk factors: {response}")
     return str(response)
 
 

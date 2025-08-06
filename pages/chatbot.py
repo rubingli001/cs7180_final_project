@@ -67,6 +67,9 @@ if "index" not in st.session_state:
 if "role" not in st.session_state:
     st.session_state.role = "🎓 Beginner"
 
+if "use_openAI" not in st.session_state:
+    st.session_state.use_openAI = False
+
 # --- Voice Input Section ---
 voice_input = None
 if voice_mode:
@@ -119,13 +122,16 @@ if user_input:
                 response = query_index_with_roles(
                     st.session_state.index, 
                     user_input, 
-                    st.session_state.role
+                    st.session_state.role,
+                    st.session_state.use_openAI
                 )
 
-        response = response.replace("$", r"\$")  # Escape dollar signs so that Streamlit won't interpret them as LaTeX
-        st.markdown(response)
-    
-    
+            response = response.replace("$", r"\$")  # Escape dollar signs so that Streamlit won't interpret them as LaTeX
+            st.markdown(response)
+        else:
+            response = "Please upload a document first so that I can help. 😊"
+            st.markdown(response)
+
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
 
@@ -152,7 +158,15 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown("### Chat Options")
-    
+
+    use_openAI = st.toggle(
+        "Switch AI model for longer responses", 
+        value=st.session_state.use_openAI
+    )
+
+    if use_openAI != st.session_state.use_openAI:
+        st.session_state.use_openAI = use_openAI
+
     if st.button("🗑️ Clear Chat"):
         st.session_state.messages = [
         {"role": "assistant", 
