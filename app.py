@@ -83,6 +83,8 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'key_metrics' not in st.session_state:
     st.session_state.key_metrics = None
+if 'risk_factors' not in st.session_state:
+    st.session_state.risk_factors = None
 
 
 # Sidebar
@@ -107,13 +109,16 @@ with st.sidebar:
             temp_file.write(uploaded_file.getvalue())
             temp_file_path = temp_file.name
         
+    
         with st.spinner("🔄 Analyzing document..."):
-                # Build Index from the document
-                st.session_state.index = build_index_from_pdf_docling(temp_file_path)
+            # Build Index from the document
+            st.session_state.index = build_index_from_pdf_docling(temp_file_path)
 
-                # Extract key metrics using RAG pipeline
-                st.session_state.key_metrics = extract_key_metrics(st.session_state.index)
-                st.success("✅ Document processed for Q&A!")
+            # Extract key metrics using RAG pipeline
+            st.session_state.key_metrics = extract_key_metrics(st.session_state.index)
+            st.session_state.risk_factors = extract_risk_factors(st.session_state.index)
+            st.success("✅ Document processed for Q&A!")
+            
     
 
 # Main content
@@ -225,7 +230,7 @@ if st.session_state.key_metrics:
                     delta = f"{change_revenue:.2f}%" 
                 
             st.metric(
-                label="💵 Revenue",
+                label="💵 Revenue ($ million)",
                 value=value,
                 delta=delta
             )
@@ -243,7 +248,7 @@ if st.session_state.key_metrics:
                     delta = f"{change_profit:.2f}%"             
                 
             st.metric(
-                label="💹 Net Profit",
+                label="💹 Net Profit ($ million)",
                 value=value,
                 delta=delta
             )
@@ -285,12 +290,13 @@ if st.session_state.key_metrics:
 
     # ------ Risk Factors Display ------
     st.markdown("---")
-    st.markdown("#### ⚠️ Major Risk Factors")
-    risk_factors = extract_risk_factors(st.session_state.index).replace("$", "\$")
-    if risk_factors:
-        st.markdown(f"""
-            <div class="analysis-card">   
-                <strong>Status:</strong>
+    st.markdown("#### ⚠️ Major Risk Factors and Business Highlights")
+    if st.session_state.risk_factors:
+        risk_factors = st.session_state.risk_factors.replace("$", r"\$")
+        if risk_factors:
+            st.markdown(f"""
+                <div class="analysis-card">   
+                    <strong>Status:</strong>
                 <span style = "color: #475569">⚠️{risk_factors}</span>
             </div>
         """, unsafe_allow_html=True)
