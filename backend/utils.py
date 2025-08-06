@@ -104,5 +104,7 @@ def find_company_name_from_index(index):
     # Regex for common company suffixes
     pattern = r"((?:#+\s*)?[A-Z][A-Za-z& ]+(Inc\.|Corporation|Corp\.|Ltd\.|Co\.|PLC|p\.l\.c\.|S\.A\.|N\.V\.))"
     match = re.search(pattern, full_text)
-    cleaned_name = re.sub(r"#", "", match.group(0)).strip()
-    return cleaned_name if match else None
+    if match:
+        cleaned_name = re.sub(r"#", "", match.group(0)).strip()
+        return cleaned_name
+    return None 
