@@ -7,5 +7,8 @@ docling
 llama-index
 llama-index-core
 llama-index-llms-openrouter
+llama-index-llms-openai
+llama-index-embeddings-openai
 llama-index-readers-docling
 python-dotenv
+openai
