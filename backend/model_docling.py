@@ -15,7 +15,6 @@ load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 os.environ["OPENROUTER_API_KEY"] = os.getenv("OPENROUTER_API_KEY")
 
-
 # Initialize both LLMs
 openrouter_llm = OpenRouter(
     model="anthropic/claude-sonnet-4", 
@@ -28,9 +27,7 @@ openai_llm = OpenAI(
 )
 
 # Set default LLM to OpenRouter
-
 llm = openrouter_llm
-
 
 # Configure OpenAI Large Embedding Model
 openai_embedding = OpenAIEmbedding(
@@ -54,17 +51,17 @@ def build_index_from_pdf_docling(pdf_file):
     pipeline_options.do_ocr = False  # Skip OCR for text-based PDFs
     pipeline_options.do_table_structure = True  # Keep table detection
 
-    # Extract pdf information using Docling)
+    # Extract pdf information using Docling
     reader = DoclingReader()
     documents = reader.load_data(pdf_file)
 
     # Node parsing (semantic chunking)
     print(f"📄 Extracted {len(documents)} documents from {pdf_file}")
-    node_parser = MarkdownNodeParser()  # Adjust chunk size and overlap as needed
+    node_parser = MarkdownNodeParser()  
     nodes = node_parser.get_nodes_from_documents(documents)
+    # show the first 5 nodes for debugging
     print(f"🔍 Parsed {len(nodes)} nodes from documents.")
     for i, node in enumerate(nodes[:5]):
-        if i == 1:  # Show first 5 nodes
             print(f"\n--- Node {i+1} ---")
             print(f"Text length: {len(node.text)} characters")
             print(f"Text preview: {node.text}")
@@ -72,12 +69,9 @@ def build_index_from_pdf_docling(pdf_file):
 
     # Indexing
     index = VectorStoreIndex.from_documents(documents, transformations=[node_parser])
-
     return index
 
-
 def query_index(index: VectorStoreIndex, query: str, llm=llm):
-
     engine = index.as_query_engine(
         llm=llm,
         similarity_top_k=5,
@@ -115,7 +109,6 @@ def create_role_prompts(user_role):
     }
 
     return role_prompts.get(user_role, role_prompts["🎓 Beginner"])
-
 
 def query_index_with_roles(index: VectorStoreIndex, question: str, user_role: str, use_openAI=False):
     try:
