@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime
-from backend.model import build_index_from_pdf
+from backend.model_pdfplumber import build_index_from_pdf
 from backend.model_docling import build_index_from_pdf_docling
 from backend.utils import extract_key_metrics, extract_risk_factors
 import tempfile
