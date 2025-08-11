@@ -3,7 +3,9 @@ from llama_index.core.node_parser import MarkdownNodeParser
 from llama_index.readers.docling import DoclingReader
 from llama_index.llms.openrouter import OpenRouter
 from llama_index.llms.openai import OpenAI
+from llama_index.embeddings.openai import OpenAIEmbedding 
 from docling.datamodel.pipeline_options import PdfPipelineOptions
+
 from dotenv import load_dotenv
 import os
 import streamlit as st
@@ -25,15 +27,21 @@ openai_llm = OpenAI(
     max_tokens=4096   # Optional: control response length
 )
 
-# maximum input size to the LLM
-Settings.context_window = 4096
-
-# number of tokens reserved for text generation.
-Settings.num_output = 1000
-
 # Set default LLM to OpenRouter
 
 llm = openrouter_llm
+
+
+# Configure OpenAI Large Embedding Model
+openai_embedding = OpenAIEmbedding(
+    model="text-embedding-3-large",  
+    api_key=os.getenv("OPENAI_API_KEY"))
+
+# maximum input size to the LLM
+Settings.context_window = 4096
+# number of tokens reserved for text generation.
+Settings.num_output = 1000
+Settings.embed_model = openai_embedding
 
 # ---------- Function to set the LLM based on the user's choice -----
 
@@ -52,14 +60,14 @@ def build_index_from_pdf_docling(pdf_file):
 
     # Node parsing (semantic chunking)
     print(f"📄 Extracted {len(documents)} documents from {pdf_file}")
-    node_parser = MarkdownNodeParser(chunk_size=512, chunk_overlap=100)  # Adjust chunk size and overlap as needed
+    node_parser = MarkdownNodeParser()  # Adjust chunk size and overlap as needed
     nodes = node_parser.get_nodes_from_documents(documents)
     print(f"🔍 Parsed {len(nodes)} nodes from documents.")
     for i, node in enumerate(nodes[:5]):
         if i == 1:  # Show first 5 nodes
             print(f"\n--- Node {i+1} ---")
             print(f"Text length: {len(node.text)} characters")
-            print(f"Text preview: {node.text}...")
+            print(f"Text preview: {node.text}")
             print("-" * 50)
 
     # Indexing
@@ -69,6 +77,7 @@ def build_index_from_pdf_docling(pdf_file):
 
 
 def query_index(index: VectorStoreIndex, query: str, llm=llm):
+
     engine = index.as_query_engine(
         llm=llm,
         similarity_top_k=5,
@@ -76,6 +85,7 @@ def query_index(index: VectorStoreIndex, query: str, llm=llm):
     )
     response = engine.query(query)
     return str(response)
+
 
 # ----------------- Querying with role-based context ----------------
 # Create role-specific prompts based on user role
